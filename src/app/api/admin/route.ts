@@ -1,14 +1,13 @@
-import { db } from "@/db";
-import { Notes } from "@/db/schemas/note.schema";
-import { Tenants } from "@/db/schemas/tenant.schema";
-import { UsersTenants } from "@/db/schemas/user_tenant.schema";
-import { ApiResponse } from "@/utils/ApiResponse";
-import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { ApiResponse } from "@/utils/ApiResponse";
+import { db } from "@/db";
+import { and, eq } from "drizzle-orm";
+import { UsersTenants } from "@/db/schemas/user_tenant.schema";
+import { TenantRequests } from "@/db/schemas/tenant_request.schema";
 
-
-export async function delete_tenant(request: NextRequest) {
+export async function GET(request: NextRequest) {
     try {
+
         const userHeader = request.headers.get("x-user");
         const user = JSON.parse(userHeader!)?.data;
         if (!user) {
@@ -23,7 +22,7 @@ export async function delete_tenant(request: NextRequest) {
             );
         }
 
-        const tenant_user_own = await db
+        const tenant_owned_by_user = await db
             .select()
             .from(UsersTenants)
             .where(and(
@@ -31,47 +30,38 @@ export async function delete_tenant(request: NextRequest) {
                 eq(UsersTenants.role, "Admin")
             ));
 
-        if (!tenant_user_own[0]) {
+        if (!tenant_owned_by_user[0]) {
             return NextResponse.json(
                 ApiResponse.response(
-                    400,
-                    "user does not own any tenant.",
+                    404,
+                    "tenant owned by user not found.",
                     null,
                     false
                 ),
                 {
-                    status: 400
+                    status: 404
                 }
             );
         }
 
-        const deleted_tenant = await db
-            .delete(Tenants)
-            .where(eq(Tenants.id, tenant_user_own[0].tenant_id))
-            .returning();
-
-        await db
-            .delete(UsersTenants)
-            .where(eq(UsersTenants.tenant_id, tenant_user_own[0].tenant_id));
-
-        await db
-            .delete(Notes)
-            .where(eq(Notes.tenantId, tenant_user_own[0].id));
+        const user_requests = await db
+            .select()
+            .from(TenantRequests)
+            .where(eq(TenantRequests.tenant_id, tenant_owned_by_user[0].tenant_id));
 
         return NextResponse.json(
             ApiResponse.response(
-                201,
-                "successfully deleted the tenant.",
-                deleted_tenant[0],
+                200,
+                "fetched all requests.",
+                user_requests,
                 true
             ),
             {
-                status: 201
+                status: 200
             }
         );
 
-    }
-    catch (error) {
+    } catch (error) {
         console.error(error);
         return NextResponse.json(
             ApiResponse.response(
@@ -90,11 +80,8 @@ export async function delete_tenant(request: NextRequest) {
 /*
 LOGIC
 
-1. if users not registered --> return
-2. user does not have any tenant --> return 
-3. remove tenant
-4. remove all relations with that tenant
-5. remove all notes in that tenant
-6. return deleted tenant
+1. if users not registered --> return.
+2. check if admin have any tenant --> if not return.
+3. return all the requests.
 
 */
