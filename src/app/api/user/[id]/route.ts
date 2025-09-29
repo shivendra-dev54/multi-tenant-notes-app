@@ -50,7 +50,7 @@ export async function DELETE(
             .where(
                 and(
                     eq(UsersTenants.user_id, user.id),
-                    eq(UsersTenants.tenant_id, tenant[0].id)
+                    eq(UsersTenants.tenant_id, tenant_id)
                 )
             );
 
@@ -59,7 +59,7 @@ export async function DELETE(
                 ApiResponse.response(
                     400,
                     "User is not a part of this tenant.",
-                    null,
+                    user_tenant_relation,
                     false
                 ),
                 { status: 400 }

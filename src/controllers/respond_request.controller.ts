@@ -88,7 +88,7 @@ export async function respond_to_req(
             const user_tenant_relationship = await db
                 .insert(UsersTenants)
                 .values({
-                    user_id: user.id,
+                    user_id: request_to_be_processed[0].user_id,
                     tenant_id: tenant_owned_by_user[0].id,
                     role: "Member"
                 })

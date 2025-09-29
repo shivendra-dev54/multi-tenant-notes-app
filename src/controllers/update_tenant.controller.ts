@@ -37,25 +37,6 @@ export async function update_tenant(request: NextRequest) {
             );
         }
 
-        const tenant_with_same_name = await db
-            .select()
-            .from(Tenants)
-            .where(eq(Tenants.name, name));
-
-        if (tenant_with_same_name[0]) {
-            return NextResponse.json(
-                ApiResponse.response(
-                    400,
-                    "tenant with same name exists.",
-                    null,
-                    false
-                ),
-                {
-                    status: 400
-                }
-            );
-        }
-
         const user_tenant = await db
             .select()
             .from(UsersTenants)
@@ -69,6 +50,28 @@ export async function update_tenant(request: NextRequest) {
                 ApiResponse.response(
                     400,
                     "user does not own any tenant.",
+                    null,
+                    false
+                ),
+                {
+                    status: 400
+                }
+            );
+        }
+
+        const tenant_with_same_name = await db
+            .select()
+            .from(Tenants)
+            .where(eq(Tenants.name, name));
+
+        if (
+            tenant_with_same_name[0] &&
+            (tenant_with_same_name[0].id !== user_tenant[0].tenant_id)
+        ) {
+            return NextResponse.json(
+                ApiResponse.response(
+                    400,
+                    "tenant with same name exists.",
                     null,
                     false
                 ),
