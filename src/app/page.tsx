@@ -3,7 +3,7 @@
 import { useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/libs/AuthStore";
+import { useAuthStore } from "@/store/AuthStore";
 
 export default function Home() {
   const { user } = useAuthStore();
@@ -20,7 +20,7 @@ export default function Home() {
   }, [checkUserStatus]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white px-6">
+    <div className="flex flex-col items-center justify-center overflow-x-hidden bg-black text-white px-6">
       
       {/* Hero Section */}
       <div className="mt-32 text-center max-w-3xl">

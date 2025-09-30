@@ -7,18 +7,18 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
     try {
         const userHeader = request.headers.get("x-user");
-        const user = JSON.parse(userHeader!)?.data;
-        if (!user) {
+        if (!userHeader) {
             return NextResponse.json(
                 ApiResponse.response(
                     401,
                     "Unauthorized",
-                    user,
+                    null,
                     false
                 ),
                 { status: 401 }
             );
         }
+        const user = JSON.parse(userHeader!)?.data;
 
         const tenant_user_part_of = await db
             .select()

@@ -1,37 +1,50 @@
 import { db } from "@/db";
 import { Tenants } from "@/db/schemas/tenant.schema";
+import { UsersTenants } from "@/db/schemas/user_tenant.schema";
 import { ApiResponse } from "@/utils/ApiResponse";
+import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
     try {
         const userHeader = request.headers.get("x-user");
-        const user = JSON.parse(userHeader!)?.data;
-        if (!user) {
+        if (!userHeader) {
             return NextResponse.json(
                 ApiResponse.response(
                     401,
                     "Unauthorized",
-                    user,
+                    null,
                     false
                 ),
                 { status: 401 }
             );
         }
+        const user = JSON.parse(userHeader!)?.data;
 
-        const tenant_list = await db
+        const tenants_user_part_of = await db
+            .select()
+            .from(UsersTenants)
+            .where(eq(UsersTenants.user_id, user.id));
+
+        const tenant_id_user_part_of = tenants_user_part_of.map((ele) => ele.tenant_id);
+
+        const tenants = await db
             .select()
             .from(Tenants);
+
+        const return_data = tenants.map((e) => {
+            const tenant = { ...e, is_part_of: false }
+            if (tenant_id_user_part_of.includes(e.id)) {
+                tenant.is_part_of = true;
+            }
+            return tenant;
+        });
 
         return NextResponse.json(
             ApiResponse.response(
                 200,
-                "successfully fetched all tenants",
-                tenant_list.map(t => ({
-                    id: t.id,
-                    name: t.name,
-                    plan: t.plan
-                })),
+                "tenants fetched",
+                return_data,
                 true
             ),
             {
@@ -39,8 +52,8 @@ export async function GET(request: NextRequest) {
             }
         );
 
-
-    } catch (error) {
+    }
+    catch (error) {
         console.error(error);
         return NextResponse.json(
             ApiResponse.response(
@@ -55,3 +68,11 @@ export async function GET(request: NextRequest) {
         );
     }
 }
+
+/*
+LOGIC
+
+1. check user auth --> return if not
+2. find all tenants that user is part of
+3. return tenants
+*/
